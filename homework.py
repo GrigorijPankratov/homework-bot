@@ -1,12 +1,14 @@
+"""Telegram-бот для отслеживания статусов проверки домашних работ."""
+
 import logging
 import os
 import sys
 import time
 from http import HTTPStatus
 
-import requests
-import telebot  # type: ignore
 from dotenv import load_dotenv
+import requests
+import telebot
 
 from exceptions import (
     EndpointUnavailableError,
@@ -28,7 +30,7 @@ HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
+    'rejected': 'Работа проверена: у ревьюера есть замечания.',
 }
 
 
@@ -169,8 +171,6 @@ if __name__ == '__main__':
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s [%(levelname)s] %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
     main()
