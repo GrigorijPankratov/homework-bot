@@ -5,7 +5,7 @@ import time
 from http import HTTPStatus
 
 import requests
-import telebot
+import telebot  # type: ignore
 from dotenv import load_dotenv
 
 from exceptions import (
@@ -130,7 +130,6 @@ def main():
         sys.exit(1)
 
     bot = telebot.TeleBot(token=TELEGRAM_TOKEN)
-    # Отладка
     timestamp = int(time.time())
     last_error_message = ''
 
