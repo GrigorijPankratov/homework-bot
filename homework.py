@@ -51,14 +51,18 @@ def check_tokens():
 
 def send_message(bot, message):
     """Отправка сообщения в Telegram."""
+    logging.debug(f'Начало отправки сообщения в Telegram: "{message}"')
     try:
-        logging.debug(f'Начало отправки сообщения в Telegram: "{message}"')
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        logging.debug(f'Удачная отправка сообщения в Telegram: "{message}"')
-    except Exception as error:
+    except (
+        telebot.apihelper.ApiException,
+        requests.RequestException
+    ) as error:
         raise TelegramMessageSendError(
             f'Сбой при отправке сообщения в Telegram: {error}'
         ) from error
+    else:
+        logging.debug(f'Удачная отправка сообщения в Telegram: "{message}"')
 
 
 def get_api_answer(timestamp):
@@ -123,6 +127,14 @@ def parse_status(homework):
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
+def send_message_if_new(bot, message, last_sent_message):
+    """Отправка сообщение в Telegram, если оно отличается от предыдущего."""
+    if message and message != last_sent_message:
+        send_message(bot, message)
+        return message
+    return last_sent_message
+
+
 def main():
     """Основная логика работы бота."""
     try:
@@ -133,35 +145,34 @@ def main():
 
     bot = telebot.TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-    last_error_message = ''
+    last_sent_message = ''
 
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
 
-            if homeworks:
-                message = parse_status(homeworks[0])
-                send_message(bot, message)
-            else:
+            if not homeworks:
                 logging.debug('Отсутствие в ответе новых статусов.')
+            else:
+                message = parse_status(homeworks[0])
+                last_sent_message = send_message_if_new(
+                    bot, message, last_sent_message
+                )
 
             timestamp = response.get('current_date', timestamp)
-            last_error_message = ''
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(message)
-
-            if message != last_error_message:
-                try:
-                    send_message(bot, message)
-                    last_error_message = message
-                except TelegramMessageSendError as send_error:
-                    logging.error(
-                        'Не удалось отправить сообщение об ошибке: '
-                        f'{send_error}'
-                    )
+            try:
+                last_sent_message = send_message_if_new(
+                    bot, message, last_sent_message
+                )
+            except TelegramMessageSendError as send_error:
+                logging.error(
+                    f'Не удалось отправить сообщение об ошибке: {send_error}'
+                )
 
         finally:
             time.sleep(RETRY_PERIOD)
