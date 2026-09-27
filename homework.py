@@ -129,7 +129,7 @@ def parse_status(homework):
 
 def send_message_if_new(bot, message, last_sent_message):
     """Отправка сообщение в Telegram, если оно отличается от предыдущего."""
-    if message and message != last_sent_message:
+    if message != last_sent_message:
         send_message(bot, message)
         return message
     return last_sent_message
@@ -152,15 +152,13 @@ def main():
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
 
-            if not homeworks:
-                logging.debug('Отсутствие в ответе новых статусов.')
-            else:
+            if homeworks:
                 message = parse_status(homeworks[0])
                 last_sent_message = send_message_if_new(
                     bot, message, last_sent_message
                 )
-
-            timestamp = response.get('current_date', timestamp)
+            else:
+                logging.debug('Отсутствие в ответе новых статусов.')
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
@@ -173,7 +171,8 @@ def main():
                 logging.error(
                     f'Не удалось отправить сообщение об ошибке: {send_error}'
                 )
-
+        else:
+            timestamp = response.get('current_date', timestamp)
         finally:
             time.sleep(RETRY_PERIOD)
 
